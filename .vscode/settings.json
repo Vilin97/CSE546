@@ -1,0 +1,13 @@
+{
+    "cSpell.words": [
+        "linalg",
+        "ndarray",
+        "polyfeatures",
+        "Ytrain"
+    ],
+    "python.linting.flake8Enabled": false,
+    "python.linting.mypyEnabled": false,
+    "editor.minimap.enabled": false,
+    "python.linting.pylintEnabled": true,
+    "python.analysis.typeCheckingMode": "off"
+}

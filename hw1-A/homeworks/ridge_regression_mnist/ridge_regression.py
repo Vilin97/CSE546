@@ -24,13 +24,17 @@ def train(x: np.ndarray, y: np.ndarray, _lambda: float) -> np.ndarray:
         np.ndarray: weight matrix of shape `(d, k)`
             which minimizes Regularized Squared Error on `x` and `y` with hyperparameter `_lambda`.
     """
-    raise NotImplementedError("Your Code Goes Here")
+    n, d = x.shape
+    reg_matrix = _lambda * np.eye(d)
+
+    # analytical solution (X'X + regMatrix)^-1 X' y
+    return np.linalg.solve(x.T @ x + reg_matrix, x.T @ y)
 
 
 @problem.tag("hw1-A")
 def predict(x: np.ndarray, w: np.ndarray) -> np.ndarray:
     """Train function for the Ridge Regression problem.
-    Should use observations (`x`), and weight matrix (`w`) to generate predicated class for each observation in x.
+    Should use observations (`x`), and weight matrix (`w`) to generate predicted class for each observation in x.
 
     Args:
         x (np.ndarray): observations represented as `(n, d)` matrix.
@@ -44,7 +48,7 @@ def predict(x: np.ndarray, w: np.ndarray) -> np.ndarray:
     Returns:
         np.ndarray: predictions matrix of shape `(n,)` or `(n, 1)`.
     """
-    raise NotImplementedError("Your Code Goes Here")
+    return np.argmax(x.dot(w), axis = 1)
 
 
 @problem.tag("hw1-A")
@@ -72,7 +76,10 @@ def one_hot(y: np.ndarray, num_classes: int) -> np.ndarray:
         ]
         ```
     """
-    raise NotImplementedError("Your Code Goes Here")
+    result = np.zeros([len(y), num_classes])
+    for (i, yi) in enumerate(y):
+        result[i, yi] = 1.0 # assumes that elements of y are in set {0,...,num_classes-1}
+    return result
 
 
 def main():

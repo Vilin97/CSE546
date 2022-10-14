@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     # regression with degree = d
     d = 8
-    model = PolynomialRegression(degree=d, reg_lambda=0)
+    model = PolynomialRegression(degree=d, reg_lambda=1e-14)
     model.fit(X, y)
 
     # output predictions
