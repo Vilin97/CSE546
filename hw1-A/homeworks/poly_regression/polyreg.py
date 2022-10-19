@@ -56,10 +56,10 @@ class PolynomialRegression:
         """
         n = len(X)
         poly_X = self.polyfeatures(X, self.degree)
-        X_ = np.c_[np.ones([n, 1]), poly_X]
-        self.std = X_.std()
-        self.mean = X_.mean()
-        X_ = (X_ - X_.mean())/(X_.std())
+        self.std = np.std(poly_X, axis = 0)
+        self.mean = np.mean(poly_X, axis = 0)
+        X_ = (poly_X - self.mean)/(self.std)
+        X_ = np.c_[np.ones([n, 1]), X_]
         # construct reg matrix
         reg_matrix = self.reg_lambda * np.eye(self.degree+1)
         reg_matrix[0, 0] = 0
@@ -82,8 +82,8 @@ class PolynomialRegression:
 
         poly_X = self.polyfeatures(X, self.degree)
 
-        X_ = np.c_[np.ones([n, 1]), poly_X]
-        X_ = (X_ - self.mean)/(self.std)
+        X_ = (poly_X - self.mean)/(self.std)
+        X_ = np.c_[np.ones([n, 1]), X_]
 
         return X_.dot(self.weight)
 
