@@ -87,7 +87,9 @@ def train(
     Returns:
         np.ndarray: Array of shape (n,) containing alpha hat as described in the pdf.
     """
-    raise NotImplementedError("Your Code Goes Here")
+    n = len(x)
+    K = kernel_function(x, x, kernel_param)
+    return np.linalg.solve(K + _lambda * np.eye(n), y)
 
 
 @problem.tag("hw3-A", start_line=1)
@@ -117,12 +119,15 @@ def cross_validation(
     Returns:
         float: Average loss of trained function on validation sets across folds.
     """
+    n = len(x)
     fold_size = len(x) // num_folds
-    # TODO shuffle the data
-    x_folds = np.split(x, num_folds)
-    y_folds = np.split(y, num_folds)
-    for (x_fold, y_fold) in zip(x_folds, y_folds):
-        #TODO
+    to_delete = range(fold_size*num_folds, n)
+    train_data = np.delete(np.c_[x, y], to_delete)
+    np.random.shuffle(train_data)
+    folds = np.split(train_data, num_folds)
+    for fold in folds:
+        weight = train(fold[:,0], fold[:,1], kernel_function, kernel_param, _lambda)
+        
 
 
 @problem.tag("hw3-A")

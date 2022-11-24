@@ -83,7 +83,7 @@ class BinaryLogReg:
             float: Loss given X, y, self.weight, self.bias and self._lambda
         """
         w = self.weight
-        return -np.mean(np.log(self.mu(X, y))) + self._lambda * np.sum(w*w)
+        return -np.mean(np.log(self.mu(X, y))) + self._lambda * w@w
 
     @problem.tag("hw3-A")
     def gradient_J_weight(self, X: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -98,7 +98,8 @@ class BinaryLogReg:
         Returns:
             np.ndarray: An `(d, )` vector which represents gradient of loss J with respect to self.weight.
         """
-        return 2*self._lambda*self.weight + np.mean((self.mu(X,y)-1)*y*np.transpose(X), 1)
+        n, d = X.shape
+        return 2*self._lambda*self.weight + ((self.mu(X,y)-1)*y).T @ X / n
 
     @problem.tag("hw3-A")
     def gradient_J_bias(self, X: np.ndarray, y: np.ndarray) -> float:
