@@ -41,8 +41,7 @@ def poly_kernel(x_i: np.ndarray, x_j: np.ndarray, d: int) -> np.ndarray:
             They apply an operation similar to xx^T (if x is a vector), but not necessarily with multiplication.
             To use it simply append .outer to function. For example: np.add.outer, np.divide.outer
     """
-    raise NotImplementedError("Your Code Goes Here")
-
+    return (np.multiply.outer(x_i, x_j)+1)**d
 
 @problem.tag("hw3-A")
 def rbf_kernel(x_i: np.ndarray, x_j: np.ndarray, gamma: float) -> np.ndarray:
@@ -66,8 +65,7 @@ def rbf_kernel(x_i: np.ndarray, x_j: np.ndarray, gamma: float) -> np.ndarray:
             They apply an operation similar to xx^T (if x is a vector), but not necessarily with multiplication.
             To use it simply append .outer to function. For example: np.add.outer, np.divide.outer
     """
-    raise NotImplementedError("Your Code Goes Here")
-
+    return np.exp(-gamma*np.subtract.outer(x_i, x_j)**2)
 
 @problem.tag("hw3-A")
 def train(
@@ -120,7 +118,11 @@ def cross_validation(
         float: Average loss of trained function on validation sets across folds.
     """
     fold_size = len(x) // num_folds
-    raise NotImplementedError("Your Code Goes Here")
+    # TODO shuffle the data
+    x_folds = np.split(x, num_folds)
+    y_folds = np.split(y, num_folds)
+    for (x_fold, y_fold) in zip(x_folds, y_folds):
+        #TODO
 
 
 @problem.tag("hw3-A")
@@ -148,7 +150,16 @@ def rbf_param_search(
         - If using random search we recommend sampling lambda from distribution 10**i, where i~Unif(-5, -1)
         - If using grid search we recommend choosing possible lambdas to 10**i, where i=linspace(-5, -1)
     """
-    raise NotImplementedError("Your Code Goes Here")
+    best_lambda = 0.0
+    best_loss = 99999999.9
+    gamma = 1/np.median(abs(np.subtract.outer(x,x))) 
+    for i in np.linspace(-5,-1):
+        _lambda = 10**i
+        l = cross_validation(x,y,rbf_kernel,gamma,_lambda,num_folds)
+        if l < best_loss:
+            best_lambda = _lambda
+            best_loss = l
+    return best_lambda, gamma
 
 
 @problem.tag("hw3-A")
@@ -179,7 +190,18 @@ def poly_param_search(
         - If using grid search we recommend choosing possible lambdas to 10**i, where i=linspace(-5, -1)
             and possible ds to [7, 8, ..., 20, 21]
     """
-    raise NotImplementedError("Your Code Goes Here")
+    best_lambda = 0.0
+    best_d = 1
+    best_loss = 99999999.9
+    for i in np.linspace(-5,-1):
+        for d in range(7,22):
+            _lambda = 10**i
+            l = cross_validation(x,y,poly_kernel,d,_lambda,num_folds)
+            if l < best_loss:
+                best_lambda = _lambda
+                best_d = d
+                best_loss = l
+    return best_lambda, best_d
 
 
 @problem.tag("hw3-A", start_line=1)

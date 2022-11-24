@@ -34,7 +34,7 @@ def load_2_7_mnist() -> Dataset:
 
 class BinaryLogReg:
     @problem.tag("hw3-A", start_line=4)
-    def __init__(self, _lambda: float = 1e-3):
+    def __init__(self, _lambda: float = 1e-1):
         """Initializes the Binary Log Regression model.
         NOTE: Please DO NOT change `self.weight` and `self.bias` values, since it may break testing and lead to lost points!
 
@@ -45,7 +45,7 @@ class BinaryLogReg:
         # Fill in with matrix with the correct shape
         self.weight: np.ndarray = None  # type: ignore
         self.bias: float = 0.0
-        raise NotImplementedError("Your Code Goes Here")
+        # raise NotImplementedError("Your Code Goes Here")
 
     @problem.tag("hw3-A")
     def mu(self, X: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -64,7 +64,9 @@ class BinaryLogReg:
         Returns:
             np.ndarray: An `(n, )` vector containing mu_i for i^th element.
         """
-        raise NotImplementedError("Your Code Goes Here")
+        n, d = X.shape
+        w, b = self.weight, self.bias
+        return 1/(1+np.exp((X@w + b)*y))
 
     @problem.tag("hw3-A")
     def loss(self, X: np.ndarray, y: np.ndarray) -> float:
@@ -80,7 +82,8 @@ class BinaryLogReg:
         Returns:
             float: Loss given X, y, self.weight, self.bias and self._lambda
         """
-        raise NotImplementedError("Your Code Goes Here")
+        w = self.weight
+        return -np.mean(np.log(self.mu(X, y))) + self._lambda * np.sum(w*w)
 
     @problem.tag("hw3-A")
     def gradient_J_weight(self, X: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -95,7 +98,7 @@ class BinaryLogReg:
         Returns:
             np.ndarray: An `(d, )` vector which represents gradient of loss J with respect to self.weight.
         """
-        raise NotImplementedError("Your Code Goes Here")
+        return 2*self._lambda*self.weight + np.mean((self.mu(X,y)-1)*y*np.transpose(X), 1)
 
     @problem.tag("hw3-A")
     def gradient_J_bias(self, X: np.ndarray, y: np.ndarray) -> float:
@@ -111,7 +114,7 @@ class BinaryLogReg:
         Returns:
             float: A number that represents gradient of loss J with respect to self.bias.
         """
-        raise NotImplementedError("Your Code Goes Here")
+        return np.mean((self.mu(X,y)-1)*y) 
 
     @problem.tag("hw3-A")
     def predict(self, X: np.ndarray) -> np.ndarray:
@@ -125,7 +128,7 @@ class BinaryLogReg:
         Returns:
             np.ndarray: An `(n, )` array of either -1s or 1s representing guess for each observation.
         """
-        raise NotImplementedError("Your Code Goes Here")
+        return np.sign(self.bias + X@self.weight)
 
     @problem.tag("hw3-A")
     def misclassification_error(self, X: np.ndarray, y: np.ndarray) -> float:
@@ -142,7 +145,8 @@ class BinaryLogReg:
         Returns:
             float: percentage of times prediction did not match target, given an observation (i.e. misclassification error).
         """
-        raise NotImplementedError("Your Code Goes Here")
+        n, d = X.shape
+        return np.count_nonzero(self.predict(X) - y) / n
 
     @problem.tag("hw3-A")
     def step(self, X: np.ndarray, y: np.ndarray, learning_rate: float = 1e-4):
@@ -158,7 +162,8 @@ class BinaryLogReg:
             learning_rate (float, optional): Learning rate of SGD/GD algorithm.
                 Defaults to 1e-4.
         """
-        raise NotImplementedError("Your Code Goes Here")
+        self.weight -= learning_rate * self.gradient_J_weight(X,  y)
+        self.bias -= learning_rate * self.gradient_J_bias(X,  y)
 
     @problem.tag("hw3-A", start_line=7)
     def train(
@@ -209,20 +214,35 @@ class BinaryLogReg:
         Note:
             - When shuffling batches/randomly choosing batches makes sure you are using RNG variable defined on the top of the file.
         """
-        num_batches = int(np.ceil(len(X_train) // batch_size))
+        n, d = X_train.shape
+        self.weight = np.zeros(d)
+        num_batches = int(np.ceil(n // batch_size))
+        to_delete = range(num_batches*batch_size, n)
+        X_train = np.delete(X_train, to_delete, 0)
+        y_train = np.delete(y_train, to_delete)
+
         result: Dict[str, List[float]] = {
             "train_losses": [],  # You should append to these lists
             "train_errors": [],
             "test_losses": [],
             "test_errors": [],
         }
-        raise NotImplementedError("Your Code Goes Here")
-
+        train_data = np.c_[X_train, y_train]
+        for epoch in range(epochs):
+            RNG.shuffle(train_data)
+            batches = np.split(train_data, num_batches)
+            for batch in batches:
+                self.step(batch[:,:-1], batch[:,-1], learning_rate=learning_rate)
+            result["train_losses"].append(self.loss(X_train, y_train))
+            result["train_errors"].append(self.misclassification_error(X_train, y_train))
+            result["test_losses"].append(self.loss(X_test, y_test))
+            result["test_errors"].append(self.misclassification_error(X_test, y_test))
+        return result
 
 if __name__ == "__main__":
     model = BinaryLogReg()
     (x_train, y_train), (x_test, y_test) = load_2_7_mnist()
-    history = model.train(x_train, y_train, x_test, y_test)
+    history = model.train(x_train, y_train, x_test, y_test, learning_rate=1e-4)
 
     # Plot losses
     plt.plot(history["train_losses"], label="Train")
