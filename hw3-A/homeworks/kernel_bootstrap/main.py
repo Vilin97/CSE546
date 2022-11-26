@@ -91,6 +91,12 @@ def train(
     K = kernel_function(x, x, kernel_param)
     return np.linalg.solve(K + _lambda * np.eye(n), y)
 
+def predict(x_train, x_test, weight, kernel_function, kernel_param):
+    return weight @ kernel_function(x_train, x_test, kernel_param)
+
+def loss(x_train, x_test, y_test, weight, kernel_function, kernel_param):
+    y_hat = predict(x_train, x_test, weight, kernel_function, kernel_param)
+    return np.linalg.norm(y_test - y_hat) ** 2
 
 @problem.tag("hw3-A", start_line=1)
 def cross_validation(
@@ -122,11 +128,15 @@ def cross_validation(
     n = len(x)
     fold_size = len(x) // num_folds
     to_delete = range(fold_size*num_folds, n)
-    train_data = np.delete(np.c_[x, y], to_delete)
+    train_data = np.delete(np.c_[x, y], to_delete, 0)
     np.random.shuffle(train_data)
-    folds = np.split(train_data, num_folds)
-    for fold in folds:
-        weight = train(fold[:,0], fold[:,1], kernel_function, kernel_param, _lambda)
+    sum_loss = 0.0
+    for i in range(num_folds):
+        train_fold = np.delete(train_data, range(i*fold_size, (i+1)*fold_size), 0)
+        test_fold  = train_data[range(i*fold_size, (i+1)*fold_size)]
+        weight = train(train_fold[:,0], train_fold[:,1], kernel_function, kernel_param, _lambda)
+        sum_loss += loss(train_fold[:,0], test_fold[:,0], test_fold[:,1], weight, kernel_function, kernel_param)
+    return sum_loss/num_folds
         
 
 
@@ -155,16 +165,20 @@ def rbf_param_search(
         - If using random search we recommend sampling lambda from distribution 10**i, where i~Unif(-5, -1)
         - If using grid search we recommend choosing possible lambdas to 10**i, where i=linspace(-5, -1)
     """
+    gamma_ = 1/np.median(abs(np.subtract.outer(x,x))) 
     best_lambda = 0.0
+    best_gamma = gamma_
     best_loss = 99999999.9
-    gamma = 1/np.median(abs(np.subtract.outer(x,x))) 
-    for i in np.linspace(-5,-1):
-        _lambda = 10**i
-        l = cross_validation(x,y,rbf_kernel,gamma,_lambda,num_folds)
-        if l < best_loss:
-            best_lambda = _lambda
-            best_loss = l
-    return best_lambda, gamma
+    for i in np.linspace(-7,-1):
+        for j in np.linspace(-1,2):
+            _lambda = 10**i
+            gamma = gamma_ * 10**j
+            l = cross_validation(x,y,rbf_kernel,gamma,_lambda,num_folds)
+            if l < best_loss:
+                best_lambda = _lambda
+                best_gamma = gamma
+                best_loss = l
+    return best_lambda, best_gamma
 
 
 @problem.tag("hw3-A")
@@ -198,7 +212,7 @@ def poly_param_search(
     best_lambda = 0.0
     best_d = 1
     best_loss = 99999999.9
-    for i in np.linspace(-5,-1):
+    for i in np.linspace(-7,-1):
         for d in range(7,22):
             _lambda = 10**i
             l = cross_validation(x,y,poly_kernel,d,_lambda,num_folds)
@@ -263,8 +277,38 @@ def main():
         - When plotting you might find that your predictions go into hundreds, causing majority of the plot to look like a flat line.
             To avoid this call plt.ylim(-6, 6).
     """
+    # part a
     (x_30, y_30), (x_300, y_300), (x_1000, y_1000) = load_dataset("kernel_bootstrap")
-    raise NotImplementedError("Your Code Goes Here")
+    x_train, y_train = x_300, y_300
+    # num_folds = 10
+    # _lambda_rbf, gamma = rbf_param_search(x_train, y_train, num_folds)
+    # _lambda_poly, d = poly_param_search(x_train, y_train, num_folds)
+    # print(f"rbf params: \n  lambda: {_lambda_rbf}, gamma: {gamma}")
+    # print(f"poly params: \n  lambda: {_lambda_poly}, d: {d}")
+    
+    # x_30:
+    # _lambda_rbf, gamma = 0.0019306977288832496, 40.39095772152451
+    # _lambda_poly, d = 1.2648552168552959e-06, 17
+
+    # x_300:
+    _lambda_rbf = 0.04291934260128778
+    gamma = 311.51859223228763
+    _lambda_poly = 1e-07
+    d = 21
+
+    # part b
+    weight_rbf = train(x_train, y_train, rbf_kernel, gamma, _lambda_rbf)
+    weight_poly = train(x_train, y_train, poly_kernel, d, _lambda_poly)
+    x_fine_grid = np.linspace(0, 1, 100)
+    rbf_predictions = [predict(x_train, x, weight_rbf, rbf_kernel, gamma) for x in x_fine_grid]
+    poly_predictions = [predict(x_train, x, weight_poly, poly_kernel, d) for x in x_fine_grid]
+    # plt.plot(x_fine_grid, rbf_predictions, label = "rbf kernel")
+    plt.plot(x_fine_grid, poly_predictions, label = "polynomial kernel")
+    plt.plot(x_fine_grid, [f_true(x) for x in x_fine_grid], label = "true function")
+    plt.legend()
+    plt.show()
+    
+    
 
 
 if __name__ == "__main__":

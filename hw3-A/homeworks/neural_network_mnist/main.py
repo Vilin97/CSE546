@@ -3,6 +3,7 @@
 import math
 from typing import List
 
+import numpy as np
 import matplotlib.pyplot as plt
 import torch
 from torch.distributions import Uniform
@@ -14,6 +15,17 @@ from torch.utils.data import DataLoader, TensorDataset
 
 from utils import load_dataset, problem
 
+RNG = np.random.RandomState(seed=446)
+
+class Linear(Module):
+    def __init__(self, d_in: int, d_out: int):
+        super().__init__()
+        alpha = 1/math.sqrt(d_in)
+        dist = Uniform(-alpha, alpha)
+        self.W = Parameter(dist.sample([d_out, d_in]))
+        self.b = Parameter(dist.sample([d_out, 1]))
+    def forward(self, x: torch.Tensor):
+        return torch.mm(self.W, x) + self.b
 
 class F1(Module):
     @problem.tag("hw3-A", start_line=1)
@@ -26,7 +38,8 @@ class F1(Module):
             k (int): Output dimension/number of classes.
         """
         super().__init__()
-        raise NotImplementedError("Your Code Goes Here")
+        self.layer1 = Linear(d,h)
+        self.layer2 = Linear(h,k)
 
     @problem.tag("hw3-A")
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -42,7 +55,7 @@ class F1(Module):
         Returns:
             torch.Tensor: LongTensor of shape (n, k). Prediction.
         """
-        raise NotImplementedError("Your Code Goes Here")
+        return self.layer2(relu(self.layer1(x.T))).T
 
 
 class F2(Module):
@@ -57,7 +70,9 @@ class F2(Module):
             k (int): Output dimension/number of classes.
         """
         super().__init__()
-        raise NotImplementedError("Your Code Goes Here")
+        self.layer1 = Linear(d, h0)
+        self.layer2 = Linear(h0, h1)
+        self.layer3 = Linear(h1, k)
 
     @problem.tag("hw3-A")
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -73,11 +88,12 @@ class F2(Module):
         Returns:
             torch.Tensor: LongTensor of shape (n, k). Prediction.
         """
-        raise NotImplementedError("Your Code Goes Here")
+        return self.layer3(relu(self.layer2(relu(self.layer1(x.T))))).T
+
 
 
 @problem.tag("hw3-A")
-def train(model: Module, optimizer: Adam, train_loader: DataLoader) -> List[float]:
+def train(model: Module, x_train, y_train) -> List[float]:
     """
     Train a model until it reaches 99% accuracy on train set, and return list of training crossentropy losses for each epochs.
 
@@ -91,8 +107,32 @@ def train(model: Module, optimizer: Adam, train_loader: DataLoader) -> List[floa
     Returns:
         List[float]: List containing average loss for each epoch.
     """
-    raise NotImplementedError("Your Code Goes Here")
+    optimizer = Adam(model.parameters())
+    n, d = x_train.shape
+    batch_size = 600
+    num_batches = n//batch_size
+    epochs = 1
+    losses = []
+    data = np.c_[x_train, y_train]
+    for epoch in range(epochs):
+        RNG.shuffle(data)
+        batches = np.split(data, num_batches)
+        for batch in batches:
+            x, y = torch.from_numpy(batch[:, :d]).float(), torch.from_numpy(batch[:, d]).long()
+            y_hat = model(x)
+            loss = cross_entropy(y_hat, y)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+        x, y = torch.from_numpy(data[:, :d]).float(), torch.from_numpy(data[:, d]).long()
+        losses.append(cross_entropy(x, y))
+    return losses
 
+def accuracy(y_hat, y):
+    n = y.shape
+    num_incorrect = np.count_nonzero(np.argmax(y_hat, 1) - y )
+    return 1. - num_incorrect/n
+        
 
 @problem.tag("hw3-A", start_line=5)
 def main():
@@ -112,8 +152,25 @@ def main():
     y = torch.from_numpy(y).long()
     x_test = torch.from_numpy(x_test).float()
     y_test = torch.from_numpy(y_test).long()
-    raise NotImplementedError("Your Code Goes Here")
+    n, d = x.shape
+    k = 10
+    F1_model = F1(64, d, k)
+    F2_model = F2(32, 32, d, k)
+    F1_losses = train(F1_model, x, y)
+    F2_losses = train(F2_model, x, y)
 
+    print(f"F1 accuracy: {accuracy(F1_model(x_test), y_test)}")
+    print(f"F2 accuracy: {accuracy(F2_model(x_test), y_test)}")
+
+    plt.plot(range(50), F1_losses)
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.show()
+
+    plt.plot(range(50), F2_losses)
+    plt.xlabel("Epochs")
+    plt.ylabel("Loss")
+    plt.show()
 
 if __name__ == "__main__":
     main()

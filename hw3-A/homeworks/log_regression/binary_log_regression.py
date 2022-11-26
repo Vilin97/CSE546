@@ -34,7 +34,7 @@ def load_2_7_mnist() -> Dataset:
 
 class BinaryLogReg:
     @problem.tag("hw3-A", start_line=4)
-    def __init__(self, _lambda: float = 1e-1):
+    def __init__(self, _lambda: float = 1e-3):
         """Initializes the Binary Log Regression model.
         NOTE: Please DO NOT change `self.weight` and `self.bias` values, since it may break testing and lead to lost points!
 
@@ -64,9 +64,8 @@ class BinaryLogReg:
         Returns:
             np.ndarray: An `(n, )` vector containing mu_i for i^th element.
         """
-        n, d = X.shape
         w, b = self.weight, self.bias
-        return 1/(1+np.exp((X@w + b)*y))
+        return 1/(1+np.exp(-y*(X@w + b)))
 
     @problem.tag("hw3-A")
     def loss(self, X: np.ndarray, y: np.ndarray) -> float:
@@ -241,9 +240,9 @@ class BinaryLogReg:
         return result
 
 if __name__ == "__main__":
-    model = BinaryLogReg()
+    model = BinaryLogReg(_lambda = 1e-1)
     (x_train, y_train), (x_test, y_test) = load_2_7_mnist()
-    history = model.train(x_train, y_train, x_test, y_test, learning_rate=1e-4)
+    history = model.train(x_train, y_train, x_test, y_test, learning_rate=1e-3, batch_size=100, epochs = 50)
 
     # Plot losses
     plt.plot(history["train_losses"], label="Train")
